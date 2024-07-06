@@ -7,6 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { useState } from "react";
+import { Link } from "expo-router";
 
 import { Colors } from "@/constants/Colors";
 
@@ -15,14 +16,7 @@ export default function Index() {
   const [password, setPassword] = useState("");
 
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "white",
-      }}
-    >
+    <View style={styles.container}>
       <Image
         source={require("@/assets/images/castle-tower.png")}
         style={{ width: 232, height: 232 }}
@@ -46,17 +40,19 @@ export default function Index() {
         autoCapitalize="none"
         selectionColor={Colors.link}
       />
-      <Pressable
-        style={({ pressed }) => [
-          {
-            backgroundColor: pressed ? Colors.highlightedBlue : Colors.blue,
-          },
-          styles.button,
-        ]}
-        onPress={() => console.log("Sign in")}
-      >
-        <Text style={styles.buttonText}>SIGN IN</Text>
-      </Pressable>
+      <Link href="/home" asChild>
+        <Pressable
+          style={({ pressed }) => [
+            {
+              backgroundColor: pressed ? Colors.highlightedBlue : Colors.blue,
+            },
+            styles.button,
+          ]}
+          onPress={() => console.log("Sign in")}
+        >
+          <Text style={styles.buttonText}>SIGN IN</Text>
+        </Pressable>
+      </Link>
       <Text style={styles.link} onPress={() => console.log("Forgot password")}>
         Forgot password?
       </Text>
@@ -76,6 +72,12 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+  },
   title: {
     fontFamily: "Inter-ExtraBold",
     fontSize: 52,
