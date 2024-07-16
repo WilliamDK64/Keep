@@ -7,6 +7,7 @@ import {
   Platform,
   StatusBar,
   ScrollView,
+  Pressable,
 } from "react-native";
 import { useState } from "react";
 import { Overlay } from "@rneui/themed";
@@ -16,6 +17,11 @@ import { Colors } from "@/constants/Colors";
 
 const home = () => {
   const [search, setSearch] = useState("");
+  const [overlayVisible, setOverlayVisible] = useState(false);
+
+  const [inputName, setInputName] = useState("");
+  const [inputPreferredQuantity, setInputPreferredQuantity] = useState("");
+  const [inputQuantity, setInputQuantity] = useState("");
 
   class Item {
     name: string;
@@ -52,6 +58,31 @@ const home = () => {
     new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
   ]);
 
+  const addItem = () => {
+    setOverlayVisible(true);
+  };
+
+  const createNewItem = () => {
+    setItemArray((itemArray) => [
+      ...itemArray,
+      new Item(
+        inputName,
+        parseInt(inputQuantity),
+        parseInt(inputPreferredQuantity),
+        true,
+        new Date(2025, 1, 1)
+      ),
+    ]);
+  };
+
+  const handleConfirmItem = () => {
+    createNewItem();
+    setOverlayVisible(false);
+    setInputName("");
+    setInputPreferredQuantity("");
+    setInputQuantity("");
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -86,20 +117,54 @@ const home = () => {
           </View>
         ))}
 
-        <View style={styles.itemBox}>
-          <Text
-            style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
-            numberOfLines={1}
-          >
-            Add Item
-          </Text>
-        </View>
+        <Pressable style={{ width: "85%" }} onPress={addItem}>
+          <View style={[styles.itemBox, { width: "100%" }]}>
+            <Text
+              style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
+              numberOfLines={1}
+            >
+              Add Item
+            </Text>
+          </View>
+        </Pressable>
 
-        {/*
-        <Overlay isVisible={true}>
-          <Text>Hello world!</Text>
+        <Overlay
+          overlayStyle={styles.overlayContainer}
+          isVisible={overlayVisible}
+        >
+          <TextInput
+            style={styles.longInput}
+            onChangeText={setInputName}
+            value={inputName}
+            placeholder="Name"
+            selectionColor={Colors.link}
+          />
+          <TextInput
+            style={styles.longInput}
+            onChangeText={setInputPreferredQuantity}
+            value={inputPreferredQuantity}
+            placeholder="Preferred Quantity"
+            selectionColor={Colors.link}
+            keyboardType="number-pad"
+          />
+          <TextInput
+            style={styles.longInput}
+            onChangeText={setInputQuantity}
+            value={inputQuantity}
+            placeholder="Quantity"
+            selectionColor={Colors.link}
+            keyboardType="number-pad"
+          />
+          <Pressable onPress={handleConfirmItem} style={styles.confirmButton}>
+            <Text style={styles.confirmButtonText}>Confirm</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setOverlayVisible(false)}
+            style={styles.cancelButton}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </Pressable>
         </Overlay>
-        */}
 
         {/*
         <View style={styles.itemBox}>
@@ -152,6 +217,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 20,
   },
+  overlayContainer: {
+    width: "85%",
+    borderRadius: 13,
+    justifyContent: "flex-start",
+    alignItems: "center",
+  },
   searchBox: {
     fontFamily: "Inter-Bold",
     fontSize: 20,
@@ -191,5 +262,42 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginHorizontal: 4,
     marginVertical: 2,
+  },
+  longInput: {
+    fontFamily: "Inter-Regular",
+    fontSize: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 18.5,
+    borderRadius: 0,
+    width: "90%",
+    marginVertical: 10,
+  },
+  confirmButton: {
+    padding: 18.5,
+    borderRadius: 13,
+    width: "50%",
+    margin: 10,
+    alignItems: "center",
+    backgroundColor: Colors.blue,
+  },
+  confirmButtonText: {
+    fontFamily: "Inter-Bold",
+    fontSize: 20,
+    color: "white",
+  },
+  cancelButton: {
+    padding: 18.5,
+    borderRadius: 13,
+    width: "50%",
+    margin: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  cancelButtonText: {
+    fontFamily: "Inter-Regular",
+    fontSize: 20,
+    color: "black",
   },
 });
