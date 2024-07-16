@@ -5,9 +5,12 @@ import {
   TextInput,
   Image,
   Pressable,
+  SafeAreaView,
+  Platform,
+  StatusBar,
 } from "react-native";
 import { useState } from "react";
-import { Link } from "expo-router";
+import { router } from "expo-router";
 
 import { Colors } from "@/constants/Colors";
 
@@ -16,12 +19,14 @@ export default function Index() {
   const [password, setPassword] = useState("");
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* KEEP logo */}
       <Image
         source={require("@/assets/images/castle-tower.png")}
         style={{ width: 232, height: 232 }}
       />
       {/*<Text style={styles.title}>KEEP</Text>*/}
+      {/* Email Input */}
       <TextInput
         style={styles.input}
         onChangeText={setEmail}
@@ -31,6 +36,7 @@ export default function Index() {
         autoCapitalize="none"
         selectionColor={Colors.link}
       />
+      {/* Password Input */}
       <TextInput
         style={styles.input}
         onChangeText={setPassword}
@@ -40,22 +46,26 @@ export default function Index() {
         autoCapitalize="none"
         selectionColor={Colors.link}
       />
-      <Link href="/home" asChild>
-        <Pressable
-          style={({ pressed }) => [
-            {
-              backgroundColor: pressed ? Colors.highlightedBlue : Colors.blue,
-            },
-            styles.button,
-          ]}
-          onPress={() => console.log("Sign in")}
-        >
-          <Text style={styles.buttonText}>SIGN IN</Text>
-        </Pressable>
-      </Link>
+      {/* Sign In Button */}
+      <Pressable
+        style={({ pressed }) => [
+          {
+            backgroundColor: pressed ? Colors.highlightedBlue : Colors.blue,
+          },
+          styles.button,
+        ]}
+        onPress={() => {
+          console.log("Sign in");
+          router.navigate("/home");
+        }}
+      >
+        <Text style={styles.buttonText}>SIGN IN</Text>
+      </Pressable>
+      {/* Forgot Password Link */}
       <Text style={styles.link} onPress={() => console.log("Forgot password")}>
         Forgot password?
       </Text>
+      {/* Create Account Button */}
       <Pressable
         style={({ pressed }) => [
           {
@@ -67,7 +77,7 @@ export default function Index() {
       >
         <Text style={styles.minorButtonText}>CREATE ACCOUNT</Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -77,6 +87,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "white",
+    marginTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   title: {
     fontFamily: "Inter-ExtraBold",
