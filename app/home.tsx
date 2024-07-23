@@ -8,6 +8,7 @@ import {
   StatusBar,
   ScrollView,
   Pressable,
+  Alert,
 } from "react-native";
 import { useState } from "react";
 import { Overlay } from "@rneui/themed";
@@ -49,13 +50,6 @@ const home = () => {
     new Item("Paracetamol", 3, 5, true, new Date(2025, 1, 1)),
     new Item("Ibuprofen", 3, 5, true, new Date(2025, 1, 1)),
     new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
   ]);
 
   const addItem = () => {
@@ -76,11 +70,53 @@ const home = () => {
   };
 
   const handleConfirmItem = () => {
-    createNewItem();
-    setOverlayVisible(false);
-    setInputName("");
-    setInputPreferredQuantity("");
-    setInputQuantity("");
+    try {
+      parseInt(inputQuantity);
+    } catch {
+      if (inputQuantity == "") {
+        Alert.alert(
+          "Error",
+          "Please ensure that the quantity field is not empty.",
+          [{ text: "OK", onPress: () => console.log("OK Pressed") }]
+        );
+      } else {
+        Alert.alert(
+          "Error",
+          "Please ensure that only numbers are put in the quantity field.",
+          [{ text: "OK", onPress: () => console.log("OK Pressed") }]
+        );
+      }
+    }
+    try {
+      parseInt(inputPreferredQuantity);
+    } catch {
+      if (inputPreferredQuantity == "") {
+        Alert.alert(
+          "Error",
+          "Please ensure that the preferred quantity field is not empty.",
+          [{ text: "OK", onPress: () => console.log("OK Pressed") }]
+        );
+      } else {
+        Alert.alert(
+          "Error",
+          "Please ensure that only numbers are put in the preferred quantity field.",
+          [{ text: "OK", onPress: () => console.log("OK Pressed") }]
+        );
+      }
+    }
+    if (inputName == "") {
+      Alert.alert(
+        "Error",
+        "Please ensure that the preferred quantity field is not empty.",
+        [{ text: "OK", onPress: () => console.log("OK Pressed") }]
+      );
+    } else {
+      createNewItem();
+      setOverlayVisible(false);
+      setInputName("");
+      setInputPreferredQuantity("");
+      setInputQuantity("");
+    }
   };
 
   return (
@@ -117,6 +153,7 @@ const home = () => {
           </View>
         ))}
 
+        {/* Add Item */}
         <Pressable style={{ width: "85%" }} onPress={addItem}>
           <View style={[styles.itemBox, { width: "100%" }]}>
             <Text
@@ -128,6 +165,7 @@ const home = () => {
           </View>
         </Pressable>
 
+        {/* Item Config */}
         <Overlay
           overlayStyle={styles.overlayContainer}
           isVisible={overlayVisible}
@@ -141,17 +179,17 @@ const home = () => {
           />
           <TextInput
             style={styles.longInput}
-            onChangeText={setInputPreferredQuantity}
-            value={inputPreferredQuantity}
-            placeholder="Preferred Quantity"
+            onChangeText={setInputQuantity}
+            value={inputQuantity}
+            placeholder="Quantity"
             selectionColor={Colors.link}
             keyboardType="number-pad"
           />
           <TextInput
             style={styles.longInput}
-            onChangeText={setInputQuantity}
-            value={inputQuantity}
-            placeholder="Quantity"
+            onChangeText={setInputPreferredQuantity}
+            value={inputPreferredQuantity}
+            placeholder="Preferred Quantity"
             selectionColor={Colors.link}
             keyboardType="number-pad"
           />
