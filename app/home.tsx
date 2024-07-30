@@ -19,6 +19,7 @@ import { Colors } from "@/constants/Colors";
 const home = () => {
   const [search, setSearch] = useState("");
   const [overlayVisible, setOverlayVisible] = useState(false);
+  const [itemEditing, setItemEditing] = useState(Boolean);
 
   const [inputName, setInputName] = useState("");
   const [inputPreferredQuantity, setInputPreferredQuantity] = useState("");
@@ -52,38 +53,46 @@ const home = () => {
     new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
   ]);
 
-  const openAddItemConfig = () => {
+  const openItemConfig = (isNewItem: boolean) => {
     setOverlayVisible(true);
+    setItemEditing(isNewItem);
   };
 
   const cancelConfig = () => {
     setInputName("");
     setInputQuantity("");
     setInputPreferredQuantity("");
+    setItemEditing(false);
     setOverlayVisible(false);
   };
 
   const createNewItem = () => {
-    setItemArray((itemArray) => [
-      ...itemArray,
-      new Item(
-        inputName,
-        parseInt(inputQuantity),
-        parseInt(inputPreferredQuantity),
-        true,
-        new Date(2025, 1, 1)
-      ),
-    ]);
+    if (itemEditing) {
+      // Splice (THIS IS INVERTED FIX IT)
+    } else {
+      setItemArray((itemArray) => [
+        ...itemArray,
+        new Item(
+          inputName,
+          parseInt(inputQuantity),
+          parseInt(inputPreferredQuantity),
+          true,
+          new Date(2025, 1, 1)
+        ),
+      ]);
+    }
   };
 
   function isNumber(num: string) {
-    return !isNaN(parseInt(num)) && isFinite(parseInt(num));
+    return (
+      !isNaN(parseInt(num)) && isFinite(parseInt(num)) && parseInt(num) >= 0
+    );
   }
 
   const handleConfirmItem = () => {
     let errorMessage = "";
     // Error Handling
-    // PLEASE FIX THIS LATER <3
+    // TIDY UP LATER
     if (
       inputName == "" ||
       isNumber(inputQuantity) == false ||
@@ -103,6 +112,18 @@ const home = () => {
             "Please ensure that the quantity field is not empty.\n\n"
           );
         }
+        // Is it negative?
+        else if (parseInt(inputQuantity) < 0) {
+          errorMessage = errorMessage.concat(
+            "Please do not input a negative number into the quantity field.\n\n"
+          );
+        }
+        // Is it finite?
+        else if (isFinite(parseInt(inputQuantity)) == false) {
+          errorMessage = errorMessage.concat(
+            "Please input a smaller number into the quantity field.\n\n"
+          );
+        }
         // It is NaN.
         else {
           errorMessage = errorMessage.concat(
@@ -116,6 +137,18 @@ const home = () => {
         if (inputPreferredQuantity == "") {
           errorMessage = errorMessage.concat(
             "Please ensure that the preferred quantity field is not empty.\n\n"
+          );
+        }
+        // Is it negative?
+        else if (parseInt(inputPreferredQuantity) < 0) {
+          errorMessage = errorMessage.concat(
+            "Please do not input a negative number into the preferred quantity field.\n\n"
+          );
+        }
+        // Is it finite?
+        else if (isFinite(parseInt(inputPreferredQuantity)) == false) {
+          errorMessage = errorMessage.concat(
+            "Please input a smaller number into the preferred quantity field.\n\n"
           );
         }
         // It is Nan.
@@ -157,20 +190,29 @@ const home = () => {
         />
 
         {itemArray.map((item) => (
-          <View key={itemArray.indexOf(item)} style={styles.itemBox}>
-            <Text style={styles.itemText} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <View style={styles.itemQuantityBox}>
-              <Text style={styles.itemQuantityText}>
-                {item.quantity} / {item.preferredQuantity}
+          <Pressable
+            key={itemArray.indexOf(item)}
+            style={{ width: "85%" }}
+            onPress={() => openItemConfig(false)}
+          >
+            <View style={[styles.itemBox, { width: "100%" }]}>
+              <Text style={styles.itemText} numberOfLines={1}>
+                {item.name}
               </Text>
+              <View style={styles.itemQuantityBox}>
+                <Text style={styles.itemQuantityText}>
+                  {item.quantity} / {item.preferredQuantity}
+                </Text>
+              </View>
             </View>
-          </View>
+          </Pressable>
         ))}
 
         {/* Add Item */}
-        <Pressable style={{ width: "85%" }} onPress={openAddItemConfig}>
+        <Pressable
+          style={{ width: "85%" }}
+          onPress={() => openItemConfig(true)}
+        >
           <View style={[styles.itemBox, { width: "100%" }]}>
             <Text
               style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
