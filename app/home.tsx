@@ -52,8 +52,15 @@ const home = () => {
     new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
   ]);
 
-  const addItem = () => {
+  const openAddItemConfig = () => {
     setOverlayVisible(true);
+  };
+
+  const cancelConfig = () => {
+    setInputName("");
+    setInputQuantity("");
+    setInputPreferredQuantity("");
+    setOverlayVisible(false);
   };
 
   const createNewItem = () => {
@@ -69,47 +76,56 @@ const home = () => {
     ]);
   };
 
+  function isNumber(num: string) {
+    return !isNaN(parseInt(num)) && isFinite(parseInt(num));
+  }
+
   const handleConfirmItem = () => {
-    try {
-      parseInt(inputQuantity);
-    } catch {
-      if (inputQuantity == "") {
-        Alert.alert(
-          "Error",
-          "Please ensure that the quantity field is not empty.",
-          [{ text: "OK", onPress: () => console.log("OK Pressed") }]
-        );
-      } else {
-        Alert.alert(
-          "Error",
-          "Please ensure that only numbers are put in the quantity field.",
-          [{ text: "OK", onPress: () => console.log("OK Pressed") }]
+    let errorMessage = "";
+    // Error Handling
+    // PLEASE FIX THIS LATER <3
+    if (
+      inputName == "" ||
+      isNumber(inputQuantity) == false ||
+      isNumber(inputPreferredQuantity) == false
+    ) {
+      // Is name empty?
+      if (inputName == "") {
+        errorMessage = errorMessage.concat(
+          "Please ensure that the name field is not empty.\n\n"
         );
       }
-    }
-    try {
-      parseInt(inputPreferredQuantity);
-    } catch {
-      if (inputPreferredQuantity == "") {
-        Alert.alert(
-          "Error",
-          "Please ensure that the preferred quantity field is not empty.",
-          [{ text: "OK", onPress: () => console.log("OK Pressed") }]
-        );
-      } else {
-        Alert.alert(
-          "Error",
-          "Please ensure that only numbers are put in the preferred quantity field.",
-          [{ text: "OK", onPress: () => console.log("OK Pressed") }]
-        );
+      // Is quantity a number?
+      if (isNumber(inputQuantity) == false) {
+        // Is it empty?
+        if (inputQuantity == "") {
+          errorMessage = errorMessage.concat(
+            "Please ensure that the quantity field is not empty.\n\n"
+          );
+        }
+        // It is NaN.
+        else {
+          errorMessage = errorMessage.concat(
+            "Please ensure that only numbers are put in the quantity field.\n\n"
+          );
+        }
       }
-    }
-    if (inputName == "") {
-      Alert.alert(
-        "Error",
-        "Please ensure that the preferred quantity field is not empty.",
-        [{ text: "OK", onPress: () => console.log("OK Pressed") }]
-      );
+      // Is preferred quantity a number?
+      if (isNumber(inputPreferredQuantity) == false) {
+        // Is it empty?
+        if (inputPreferredQuantity == "") {
+          errorMessage = errorMessage.concat(
+            "Please ensure that the preferred quantity field is not empty.\n\n"
+          );
+        }
+        // It is Nan.
+        else {
+          errorMessage = errorMessage.concat(
+            "Please ensure that only numbers are put in the preferred quantity field.\n\n"
+          );
+        }
+      }
+      Alert.alert("ERROR", errorMessage, [{ text: "OK" }]);
     } else {
       createNewItem();
       setOverlayVisible(false);
@@ -154,7 +170,7 @@ const home = () => {
         ))}
 
         {/* Add Item */}
-        <Pressable style={{ width: "85%" }} onPress={addItem}>
+        <Pressable style={{ width: "85%" }} onPress={openAddItemConfig}>
           <View style={[styles.itemBox, { width: "100%" }]}>
             <Text
               style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
@@ -196,10 +212,7 @@ const home = () => {
           <Pressable onPress={handleConfirmItem} style={styles.confirmButton}>
             <Text style={styles.confirmButtonText}>Confirm</Text>
           </Pressable>
-          <Pressable
-            onPress={() => setOverlayVisible(false)}
-            style={styles.cancelButton}
-          >
+          <Pressable onPress={cancelConfig} style={styles.cancelButton}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </Pressable>
         </Overlay>
