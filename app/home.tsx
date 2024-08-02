@@ -20,6 +20,7 @@ const home = () => {
   const [search, setSearch] = useState("");
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [itemEditing, setItemEditing] = useState(Boolean);
+  const [currentItemIndex, setCurrentItemIndex] = useState(0);
 
   const [inputName, setInputName] = useState("");
   const [inputPreferredQuantity, setInputPreferredQuantity] = useState("");
@@ -53,11 +54,6 @@ const home = () => {
     new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
   ]);
 
-  const openItemConfig = (isNewItem: boolean) => {
-    setOverlayVisible(true);
-    setItemEditing(isNewItem);
-  };
-
   const cancelConfig = () => {
     setInputName("");
     setInputQuantity("");
@@ -68,7 +64,18 @@ const home = () => {
 
   const createNewItem = () => {
     if (itemEditing) {
-      // Splice (THIS IS INVERTED FIX IT)
+      itemArray.splice(
+        currentItemIndex,
+        1,
+        new Item(
+          inputName,
+          parseInt(inputQuantity),
+          parseInt(inputPreferredQuantity),
+          true,
+          new Date(2025, 1, 1)
+        )
+      );
+      setItemEditing(false);
     } else {
       setItemArray((itemArray) => [
         ...itemArray,
@@ -189,13 +196,27 @@ const home = () => {
           }}
         />
 
-        {itemArray.map((item) => (
-          <Pressable
-            key={itemArray.indexOf(item)}
-            style={{ width: "85%" }}
-            onPress={() => openItemConfig(false)}
-          >
-            <View style={[styles.itemBox, { width: "100%" }]}>
+        {itemArray
+          // CHANGE CASE SENSITIVITY
+          .filter((item) => item.name.includes(search))
+          .map((item) => (
+            <Pressable
+              key={itemArray.indexOf(item)}
+              style={({ pressed }) => [
+                {
+                  backgroundColor: pressed ? Colors.highlightedMinor : "white",
+                },
+                styles.itemBox,
+              ]}
+              onPress={() => {
+                setCurrentItemIndex(itemArray.indexOf(item));
+                setItemEditing(true);
+                setInputName(item.name);
+                setInputQuantity(item.quantity.toString());
+                setInputPreferredQuantity(item.preferredQuantity.toString());
+                setOverlayVisible(true);
+              }}
+            >
               <Text style={styles.itemText} numberOfLines={1}>
                 {item.name}
               </Text>
@@ -204,23 +225,28 @@ const home = () => {
                   {item.quantity} / {item.preferredQuantity}
                 </Text>
               </View>
-            </View>
-          </Pressable>
-        ))}
+            </Pressable>
+          ))}
 
         {/* Add Item */}
         <Pressable
-          style={{ width: "85%" }}
-          onPress={() => openItemConfig(true)}
+          style={({ pressed }) => [
+            {
+              backgroundColor: pressed ? Colors.highlightedMinor : "white",
+            },
+            styles.itemBox,
+          ]}
+          onPress={() => {
+            setItemEditing(false);
+            setOverlayVisible(true);
+          }}
         >
-          <View style={[styles.itemBox, { width: "100%" }]}>
-            <Text
-              style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
-              numberOfLines={1}
-            >
-              Add Item
-            </Text>
-          </View>
+          <Text
+            style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
+            numberOfLines={1}
+          >
+            Add Item
+          </Text>
         </Pressable>
 
         {/* Item Config */}
@@ -237,6 +263,7 @@ const home = () => {
           />
           <TextInput
             style={styles.longInput}
+            maxLength={5}
             onChangeText={setInputQuantity}
             value={inputQuantity}
             placeholder="Quantity"
@@ -245,6 +272,7 @@ const home = () => {
           />
           <TextInput
             style={styles.longInput}
+            maxLength={5}
             onChangeText={setInputPreferredQuantity}
             value={inputPreferredQuantity}
             placeholder="Preferred Quantity"
