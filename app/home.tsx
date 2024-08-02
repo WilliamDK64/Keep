@@ -197,8 +197,9 @@ const home = () => {
         />
 
         {itemArray
-          // CHANGE CASE SENSITIVITY
-          .filter((item) => item.name.includes(search))
+          .filter((item) =>
+            item.name.toLowerCase().includes(search.toLowerCase())
+          )
           .map((item) => (
             <Pressable
               key={itemArray.indexOf(item)}
