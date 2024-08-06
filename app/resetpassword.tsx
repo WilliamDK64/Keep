@@ -15,11 +15,24 @@ import { router } from "expo-router";
 import { auth, db } from "../firebase/firebase";
 
 import { Colors } from "@/constants/Colors";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 
 const resetpassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handlePassword = async () => {
+    await sendPasswordResetEmail(auth, email)
+      .then(() =>
+        alert(
+          "You have been sent an email to reset your password. Please make sure to check your spam folder."
+        )
+      )
+      .catch((error: any) => alert(error.message));
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -47,7 +60,7 @@ const resetpassword = () => {
           },
           styles.button,
         ]}
-        onPress={() => console.log("Reset password")}
+        onPress={handlePassword}
       >
         <Text style={styles.buttonText}>
           {loading ? "RESETTING..." : "RESET PASSWORD"}
