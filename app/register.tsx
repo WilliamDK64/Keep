@@ -8,28 +8,32 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  Alert,
 } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
 import { auth, db } from "../firebase/firebase";
 
 import { Colors } from "@/constants/Colors";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
-export default function Index() {
+const register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSignIn = async () => {
+  const handleSignUp = async () => {
     setLoading(true);
-    await signInWithEmailAndPassword(auth, email.trim(), password)
+    await createUserWithEmailAndPassword(auth, email.trim(), password)
       .then((userCredential) => {
         const user = userCredential.user;
         setLoading(false);
+        alert("Account created successfully!");
         setEmail("");
         setPassword("");
-        router.replace("/home");
+        setConfirmPassword("");
+        router.back();
       })
       .catch((err: any) => {
         setLoading(false);
@@ -65,7 +69,17 @@ export default function Index() {
         autoCapitalize="none"
         selectionColor={Colors.link}
       />
-      {/* Sign In Button */}
+      {/* Confirm Password Input */}
+      <TextInput
+        style={styles.input}
+        onChangeText={setConfirmPassword}
+        value={confirmPassword}
+        placeholder="Confirm Password"
+        secureTextEntry={true}
+        autoCapitalize="none"
+        selectionColor={Colors.link}
+      />
+      {/* Create Account Button */}
       <Pressable
         style={({ pressed }) => [
           {
@@ -73,34 +87,28 @@ export default function Index() {
           },
           styles.button,
         ]}
-        onPress={/*() => router.navigate("/home")*/ handleSignIn}
+        onPress={
+          password == confirmPassword
+            ? handleSignUp
+            : () =>
+                alert(
+                  "Please ensure that the password and confirmation password are the same."
+                )
+        }
       >
         <Text style={styles.buttonText}>
-          {loading ? "SIGNING IN..." : "SIGN IN"}
+          {loading ? "CREATING..." : "CREATE ACCOUNT"}
         </Text>
       </Pressable>
-      {/* Forgot Password Link */}
-      <Text
-        style={styles.link}
-        onPress={() => router.navigate("/resetpassword")}
-      >
-        Forgot password?
+      {/* Sign In Link */}
+      <Text style={styles.link} onPress={() => router.back()}>
+        Have an account? Sign In
       </Text>
-      {/* Create Account Button */}
-      <Pressable
-        style={({ pressed }) => [
-          {
-            backgroundColor: pressed ? Colors.highlightedMinor : "white",
-          },
-          styles.minorButton,
-        ]}
-        onPress={() => router.navigate("/register")}
-      >
-        <Text style={styles.minorButtonText}>CREATE ACCOUNT</Text>
-      </Pressable>
     </SafeAreaView>
   );
-}
+};
+
+export default register;
 
 const styles = StyleSheet.create({
   container: {

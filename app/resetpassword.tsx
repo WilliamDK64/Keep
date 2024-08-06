@@ -8,34 +8,18 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  Alert,
 } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
 import { auth, db } from "../firebase/firebase";
 
 import { Colors } from "@/constants/Colors";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
-export default function Index() {
+const resetpassword = () => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const handleSignIn = async () => {
-    setLoading(true);
-    await signInWithEmailAndPassword(auth, email.trim(), password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        setLoading(false);
-        setEmail("");
-        setPassword("");
-        router.replace("/home");
-      })
-      .catch((err: any) => {
-        setLoading(false);
-        alert(err.message);
-      });
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -55,17 +39,7 @@ export default function Index() {
         autoCapitalize="none"
         selectionColor={Colors.link}
       />
-      {/* Password Input */}
-      <TextInput
-        style={styles.input}
-        onChangeText={setPassword}
-        value={password}
-        placeholder="Password"
-        secureTextEntry={true}
-        autoCapitalize="none"
-        selectionColor={Colors.link}
-      />
-      {/* Sign In Button */}
+      {/* Reset Password Button */}
       <Pressable
         style={({ pressed }) => [
           {
@@ -73,34 +47,21 @@ export default function Index() {
           },
           styles.button,
         ]}
-        onPress={/*() => router.navigate("/home")*/ handleSignIn}
+        onPress={() => console.log("Reset password")}
       >
         <Text style={styles.buttonText}>
-          {loading ? "SIGNING IN..." : "SIGN IN"}
+          {loading ? "RESETTING..." : "RESET PASSWORD"}
         </Text>
       </Pressable>
-      {/* Forgot Password Link */}
-      <Text
-        style={styles.link}
-        onPress={() => router.navigate("/resetpassword")}
-      >
-        Forgot password?
+      {/* Sign In Link */}
+      <Text style={styles.link} onPress={() => router.back()}>
+        Return to Sign In
       </Text>
-      {/* Create Account Button */}
-      <Pressable
-        style={({ pressed }) => [
-          {
-            backgroundColor: pressed ? Colors.highlightedMinor : "white",
-          },
-          styles.minorButton,
-        ]}
-        onPress={() => router.navigate("/register")}
-      >
-        <Text style={styles.minorButtonText}>CREATE ACCOUNT</Text>
-      </Pressable>
     </SafeAreaView>
   );
-}
+};
+
+export default resetpassword;
 
 const styles = StyleSheet.create({
   container: {

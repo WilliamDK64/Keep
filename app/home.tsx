@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { Overlay } from "@rneui/themed";
+import { router } from "expo-router";
+import { auth, db } from "../firebase/firebase";
 
 import { GeneralStyles } from "@/constants/GeneralStyles";
 import { Colors } from "@/constants/Colors";
@@ -47,6 +49,11 @@ const home = () => {
       this.expirationDate = expirationDate;
     }
   }
+
+  const handleSignOut = async () => {
+    await auth.signOut();
+    router.replace("/");
+  };
 
   const [itemArray, setItemArray] = useState([
     new Item("Paracetamol", 3, 5, true, new Date(2025, 1, 1)),
@@ -247,6 +254,24 @@ const home = () => {
             numberOfLines={1}
           >
             Add Item
+          </Text>
+        </Pressable>
+
+        {/* TEMPORARY SIGN OUT */}
+        <Pressable
+          style={({ pressed }) => [
+            {
+              backgroundColor: pressed ? Colors.highlightedMinor : "white",
+            },
+            styles.itemBox,
+          ]}
+          onPress={handleSignOut}
+        >
+          <Text
+            style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
+            numberOfLines={1}
+          >
+            Sign Out
           </Text>
         </Pressable>
 
