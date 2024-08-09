@@ -9,24 +9,31 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  Button,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Overlay } from "@rneui/themed";
+import DatePicker from "react-native-date-picker";
 import { router } from "expo-router";
 import { auth, db } from "../firebase/firebase";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 
 import { GeneralStyles } from "@/constants/GeneralStyles";
 import { Colors } from "@/constants/Colors";
 
 const home = () => {
+  const [userInfo, setUserInfo] = useState<any | undefined>(null);
+
   const [search, setSearch] = useState("");
   const [overlayVisible, setOverlayVisible] = useState(false);
+  const [dateVisible, setDateVisible] = useState(false);
   const [itemEditing, setItemEditing] = useState(Boolean);
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
 
   const [inputName, setInputName] = useState("");
   const [inputPreferredQuantity, setInputPreferredQuantity] = useState("");
   const [inputQuantity, setInputQuantity] = useState("");
+  const [inputDate, setInputDate] = useState(new Date());
 
   class Item {
     name: string;
@@ -49,6 +56,23 @@ const home = () => {
       this.expirationDate = expirationDate;
     }
   }
+
+  const fetchData = async () => {
+    const docRef = doc(db, "users", "lvDYGX8rCFe9uSMcphlmezTJJWv2");
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      console.log("Document data:", docSnap.data());
+      setUserInfo(docSnap.data());
+    } else {
+      // docSnap.data() will be undefined in this case
+      console.log("No such document!");
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleSignOut = async () => {
     await auth.signOut();
@@ -185,6 +209,7 @@ const home = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text>Email: {userInfo?.Email}</Text>
         {/* Search box */}
         <TextInput
           style={styles.searchBox}
@@ -305,6 +330,27 @@ const home = () => {
             selectionColor={Colors.link}
             keyboardType="number-pad"
           />
+          <Pressable
+            style={styles.longInput}
+            onPress={() => setDateVisible(true)}
+          >
+            <Text style={styles.longInputText}>
+              {inputDate.getDate().toString()} /{" "}
+              {(inputDate.getMonth() + 1).toString()} /{" "}
+              {inputDate.getFullYear().toString()}
+            </Text>
+          </Pressable>
+          <DatePicker
+            modal
+            mode="date"
+            open={dateVisible}
+            date={inputDate}
+            onConfirm={(date) => {
+              setDateVisible(false);
+              setInputDate(date);
+            }}
+            onCancel={() => setDateVisible(false)}
+          />
           <Pressable onPress={handleConfirmItem} style={styles.confirmButton}>
             <Text style={styles.confirmButtonText}>Confirm</Text>
           </Pressable>
@@ -419,6 +465,11 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     width: "90%",
     marginVertical: 10,
+  },
+  longInputText: {
+    fontFamily: "Inter-Regular",
+    fontSize: 20,
+    color: "gray",
   },
   confirmButton: {
     padding: 18.5,

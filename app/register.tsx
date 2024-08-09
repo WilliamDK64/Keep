@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { router } from "expo-router";
 import { auth, db } from "../firebase/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 import { Colors } from "@/constants/Colors";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -29,7 +30,15 @@ const register = () => {
       .then((userCredential) => {
         const user = userCredential.user;
         setLoading(false);
-        alert("Account created successfully!");
+        //alert("Account created successfully!");
+        setDoc(doc(db, "users", user.uid), {
+          Email: email,
+          CreatedAt: new Date().toUTCString(),
+        })
+          .then(() => alert("Data uploaded successfully!"))
+          .catch((err: any) => {
+            alert(err.message);
+          });
         setEmail("");
         setPassword("");
         setConfirmPassword("");
