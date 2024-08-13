@@ -30,12 +30,10 @@ const register = () => {
       .then((userCredential) => {
         const user = userCredential.user;
         setLoading(false);
-        //alert("Account created successfully!");
         setDoc(doc(db, "users", user.uid), {
-          Email: email,
-          CreatedAt: new Date().toUTCString(),
+          Items: [],
         })
-          .then(() => alert("Data uploaded successfully!"))
+          .then(() => alert("Account created successfully!"))
           .catch((err: any) => {
             alert(err.message);
           });

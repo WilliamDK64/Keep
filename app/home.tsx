@@ -10,19 +10,33 @@ import {
   Pressable,
   Alert,
   Button,
+  ActivityIndicator,
+  Appearance,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { Overlay } from "@rneui/themed";
 import DatePicker from "react-native-date-picker";
 import { router } from "expo-router";
 import { auth, db } from "../firebase/firebase";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  getDocs,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 import { GeneralStyles } from "@/constants/GeneralStyles";
 import { Colors } from "@/constants/Colors";
 
 const home = () => {
   const [userInfo, setUserInfo] = useState<any | undefined>(null);
+  const [userId, setUserId] = useState("Null");
+  const docRef = doc(db, "users", userId);
 
   const [search, setSearch] = useState("");
   const [overlayVisible, setOverlayVisible] = useState(false);
@@ -57,33 +71,57 @@ const home = () => {
     }
   }
 
+  const [itemArray, setItemArray] = useState([
+    new Item("Example1", 1, 5, true, new Date(2025, 1, 1)),
+    new Item("Example2", 2, 5, true, new Date(2025, 1, 1)),
+    new Item("Example3", 3, 5, true, new Date(2025, 1, 1)),
+  ]);
+
   const fetchData = async () => {
-    const docRef = doc(db, "users", "lvDYGX8rCFe9uSMcphlmezTJJWv2");
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      console.log("Document data:", docSnap.data());
+      //console.log("Document data:", docSnap.data());
       setUserInfo(docSnap.data());
     } else {
       // docSnap.data() will be undefined in this case
-      console.log("No such document!");
+      //console.log("No such document!");
     }
   };
 
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // User is signed in, see docs for a list of available properties
+      // https://firebase.google.com/docs/reference/js/auth.user
+      //console.log("Logged in as ID: ", user.uid);
+      setUserId(user.uid);
+    } else {
+      // User is signed out
+      //console.log("User is signed out");
+    }
+  });
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [userId]);
 
   const handleSignOut = async () => {
+    let mapItems: any = [];
+    itemArray.forEach((item) => {
+      mapItems.push({
+        name: item.name,
+        quantity: item.quantity,
+        preferredQuantity: item.preferredQuantity,
+      });
+    });
+
+    await setDoc(docRef, {
+      Items: mapItems,
+    });
+
     await auth.signOut();
     router.replace("/");
   };
-
-  const [itemArray, setItemArray] = useState([
-    new Item("Paracetamol", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("Ibuprofen", 3, 5, true, new Date(2025, 1, 1)),
-    new Item("N95", 3, 5, true, new Date(2025, 1, 1)),
-  ]);
 
   const cancelConfig = () => {
     setInputName("");
@@ -207,159 +245,171 @@ const home = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text>Email: {userInfo?.Email}</Text>
-        {/* Search box */}
-        <TextInput
-          style={styles.searchBox}
-          onChangeText={setSearch}
-          value={search}
-          placeholder="Search"
-          selectionColor={Colors.link}
-        />
-        {/* Horizontal line */}
-        <View
-          style={{
-            borderBottomColor: "black",
-            borderBottomWidth: 1,
-            width: "85%",
-            marginTop: 20,
-          }}
-        />
+    <>
+      {userInfo == null && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator
+            animating={userInfo == null}
+            size="large"
+            color={Colors.blue}
+          />
+        </View>
+      )}
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Search box */}
+          <TextInput
+            style={styles.searchBox}
+            onChangeText={setSearch}
+            value={search}
+            placeholder="Search"
+            selectionColor={Colors.link}
+          />
+          {/* Horizontal line */}
+          <View
+            style={{
+              borderBottomColor: "black",
+              borderBottomWidth: 1,
+              width: "85%",
+              marginTop: 20,
+            }}
+          />
 
-        {itemArray
-          .filter((item) =>
-            item.name.toLowerCase().includes(search.toLowerCase())
-          )
-          .map((item) => (
-            <Pressable
-              key={itemArray.indexOf(item)}
-              style={({ pressed }) => [
-                {
-                  backgroundColor: pressed ? Colors.highlightedMinor : "white",
-                },
-                styles.itemBox,
-              ]}
-              onPress={() => {
-                setCurrentItemIndex(itemArray.indexOf(item));
-                setItemEditing(true);
-                setInputName(item.name);
-                setInputQuantity(item.quantity.toString());
-                setInputPreferredQuantity(item.preferredQuantity.toString());
-                setOverlayVisible(true);
-              }}
-            >
-              <Text style={styles.itemText} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <View style={styles.itemQuantityBox}>
-                <Text style={styles.itemQuantityText}>
-                  {item.quantity} / {item.preferredQuantity}
+          {itemArray
+            .filter((item) =>
+              item.name.toLowerCase().includes(search.toLowerCase())
+            )
+            .map((item) => (
+              <Pressable
+                key={itemArray.indexOf(item)}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: pressed
+                      ? Colors.highlightedMinor
+                      : "white",
+                  },
+                  styles.itemBox,
+                ]}
+                onPress={() => {
+                  setCurrentItemIndex(itemArray.indexOf(item));
+                  setItemEditing(true);
+                  setInputName(item.name);
+                  setInputQuantity(item.quantity.toString());
+                  setInputPreferredQuantity(item.preferredQuantity.toString());
+                  setOverlayVisible(true);
+                }}
+              >
+                <Text style={styles.itemText} numberOfLines={1}>
+                  {item.name}
                 </Text>
-              </View>
-            </Pressable>
-          ))}
+                <View style={styles.itemQuantityBox}>
+                  <Text style={styles.itemQuantityText}>
+                    {item.quantity} / {item.preferredQuantity}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
 
-        {/* Add Item */}
-        <Pressable
-          style={({ pressed }) => [
-            {
-              backgroundColor: pressed ? Colors.highlightedMinor : "white",
-            },
-            styles.itemBox,
-          ]}
-          onPress={() => {
-            setItemEditing(false);
-            setOverlayVisible(true);
-          }}
-        >
-          <Text
-            style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
-            numberOfLines={1}
-          >
-            Add Item
-          </Text>
-        </Pressable>
-
-        {/* TEMPORARY SIGN OUT */}
-        <Pressable
-          style={({ pressed }) => [
-            {
-              backgroundColor: pressed ? Colors.highlightedMinor : "white",
-            },
-            styles.itemBox,
-          ]}
-          onPress={handleSignOut}
-        >
-          <Text
-            style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
-            numberOfLines={1}
-          >
-            Sign Out
-          </Text>
-        </Pressable>
-
-        {/* Item Config */}
-        <Overlay
-          overlayStyle={styles.overlayContainer}
-          isVisible={overlayVisible}
-        >
-          <TextInput
-            style={styles.longInput}
-            onChangeText={setInputName}
-            value={inputName}
-            placeholder="Name"
-            selectionColor={Colors.link}
-          />
-          <TextInput
-            style={styles.longInput}
-            maxLength={5}
-            onChangeText={setInputQuantity}
-            value={inputQuantity}
-            placeholder="Quantity"
-            selectionColor={Colors.link}
-            keyboardType="number-pad"
-          />
-          <TextInput
-            style={styles.longInput}
-            maxLength={5}
-            onChangeText={setInputPreferredQuantity}
-            value={inputPreferredQuantity}
-            placeholder="Preferred Quantity"
-            selectionColor={Colors.link}
-            keyboardType="number-pad"
-          />
+          {/* Add Item */}
           <Pressable
-            style={styles.longInput}
-            onPress={() => setDateVisible(true)}
+            style={({ pressed }) => [
+              {
+                backgroundColor: pressed ? Colors.highlightedMinor : "white",
+              },
+              styles.itemBox,
+            ]}
+            onPress={() => {
+              setItemEditing(false);
+              setOverlayVisible(true);
+            }}
           >
-            <Text style={styles.longInputText}>
-              {inputDate.getDate().toString()} /{" "}
-              {(inputDate.getMonth() + 1).toString()} /{" "}
-              {inputDate.getFullYear().toString()}
+            <Text
+              style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
+              numberOfLines={1}
+            >
+              Add Item
             </Text>
           </Pressable>
-          <DatePicker
-            modal
-            mode="date"
-            open={dateVisible}
-            date={inputDate}
-            onConfirm={(date) => {
-              setDateVisible(false);
-              setInputDate(date);
-            }}
-            onCancel={() => setDateVisible(false)}
-          />
-          <Pressable onPress={handleConfirmItem} style={styles.confirmButton}>
-            <Text style={styles.confirmButtonText}>Confirm</Text>
-          </Pressable>
-          <Pressable onPress={cancelConfig} style={styles.cancelButton}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </Pressable>
-        </Overlay>
 
-        {/*
+          {/* TEMPORARY SIGN OUT */}
+          <Pressable
+            style={({ pressed }) => [
+              {
+                backgroundColor: pressed ? Colors.highlightedMinor : "white",
+              },
+              styles.itemBox,
+            ]}
+            onPress={handleSignOut}
+          >
+            <Text
+              style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
+              numberOfLines={1}
+            >
+              Sign Out
+            </Text>
+          </Pressable>
+
+          {/* Item Config */}
+          <Overlay
+            overlayStyle={styles.overlayContainer}
+            isVisible={overlayVisible}
+          >
+            <TextInput
+              style={styles.longInput}
+              onChangeText={setInputName}
+              value={inputName}
+              placeholder="Name"
+              selectionColor={Colors.link}
+            />
+            <TextInput
+              style={styles.longInput}
+              maxLength={5}
+              onChangeText={setInputQuantity}
+              value={inputQuantity}
+              placeholder="Quantity"
+              selectionColor={Colors.link}
+              keyboardType="number-pad"
+            />
+            <TextInput
+              style={styles.longInput}
+              maxLength={5}
+              onChangeText={setInputPreferredQuantity}
+              value={inputPreferredQuantity}
+              placeholder="Preferred Quantity"
+              selectionColor={Colors.link}
+              keyboardType="number-pad"
+            />
+            <Pressable
+              style={styles.longInput}
+              onPress={() => setDateVisible(true)}
+            >
+              <Text style={styles.longInputText}>
+                {inputDate.getDate().toString()} /{" "}
+                {(inputDate.getMonth() + 1).toString()} /{" "}
+                {inputDate.getFullYear().toString()}
+              </Text>
+            </Pressable>
+            <DatePicker
+              modal
+              mode="date"
+              title={null}
+              open={dateVisible}
+              date={inputDate}
+              onConfirm={(date) => {
+                setDateVisible(false);
+                setInputDate(date);
+              }}
+              onCancel={() => setDateVisible(false)}
+            />
+            <Pressable onPress={handleConfirmItem} style={styles.confirmButton}>
+              <Text style={styles.confirmButtonText}>Confirm</Text>
+            </Pressable>
+            <Pressable onPress={cancelConfig} style={styles.cancelButton}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </Pressable>
+          </Overlay>
+
+          {/*
         <View style={styles.itemBox}>
           <Text style={styles.itemText} numberOfLines={1}>
             Paracetamol
@@ -391,8 +441,9 @@ const home = () => {
           </View>
         </View>
         */}
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 };
 
@@ -414,6 +465,13 @@ const styles = StyleSheet.create({
     width: "85%",
     borderRadius: 13,
     justifyContent: "flex-start",
+    alignItems: "center",
+  },
+  loadingContainer: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "white",
+    justifyContent: "center",
     alignItems: "center",
   },
   searchBox: {
