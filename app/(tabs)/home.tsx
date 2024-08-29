@@ -12,12 +12,13 @@ import {
   Button,
   ActivityIndicator,
   Appearance,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { Overlay } from "@rneui/themed";
 import DatePicker from "react-native-date-picker";
 import { router } from "expo-router";
-import { auth, db } from "../firebase/firebase";
+import { auth, db } from "../../firebase/firebase";
 import {
   doc,
   setDoc,
@@ -29,6 +30,7 @@ import {
   arrayRemove,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 import { GeneralStyles } from "@/constants/GeneralStyles";
 import { Colors } from "@/constants/Colors";
@@ -48,6 +50,10 @@ const home = () => {
   const [inputPreferredQuantity, setInputPreferredQuantity] = useState("");
   const [inputQuantity, setInputQuantity] = useState("");
   const [inputDate, setInputDate] = useState(new Date());
+  const [inputCanExpire, setInputCanExpire] = useState(false);
+
+  // This should be changed to be editable in settings
+  const EXPIRY_PERIOD: number = 14;
 
   class Item {
     name: string;
@@ -72,9 +78,7 @@ const home = () => {
   }
 
   const [itemArray, setItemArray] = useState([
-    new Item("Example1", 1, 5, true, new Date(2025, 1, 1)),
-    new Item("Example2", 2, 5, true, new Date(2025, 1, 1)),
-    new Item("Example3", 3, 5, true, new Date(2025, 1, 1)),
+    new Item("Example", 1, 5, true, new Date(2025, 1, 1)),
   ]);
 
   const fetchData = async () => {
@@ -83,6 +87,21 @@ const home = () => {
     if (docSnap.exists()) {
       //console.log("Document data:", docSnap.data());
       setUserInfo(docSnap.data());
+      let importItems: Item[] = [];
+      if (docSnap.data().Items != null) {
+        docSnap.data().Items.forEach((item: any) => {
+          importItems.push(
+            new Item(
+              item.name,
+              item.quantity,
+              item.preferredQuantity,
+              item.canExpire,
+              item.date.toDate()
+            )
+          );
+        });
+        setItemArray(importItems);
+      }
     } else {
       // docSnap.data() will be undefined in this case
       //console.log("No such document!");
@@ -105,33 +124,54 @@ const home = () => {
     fetchData();
   }, [userId]);
 
-  const handleSignOut = async () => {
+  const handleSave = async () => {
     let mapItems: any = [];
     itemArray.forEach((item) => {
       mapItems.push({
         name: item.name,
         quantity: item.quantity,
         preferredQuantity: item.preferredQuantity,
+        canExpire: item.canExpire,
+        date: item.expirationDate,
       });
     });
 
     await setDoc(docRef, {
       Items: mapItems,
     });
+  };
 
+  const handleSignOut = async () => {
     await auth.signOut();
     router.replace("/");
   };
 
-  const cancelConfig = () => {
+  const handleCancel = () => {
     setInputName("");
     setInputQuantity("");
     setInputPreferredQuantity("");
+    setInputDate(new Date());
+    setInputCanExpire(false);
     setItemEditing(false);
     setOverlayVisible(false);
   };
 
-  const createNewItem = () => {
+  const handleDelete = () => {
+    itemArray.splice(currentItemIndex, 1);
+    handleCancel();
+    handleSave();
+  };
+
+  const handleQuantityAdjust = (adjustment: number) => {
+    try {
+      if (adjustment == 1 || (adjustment == -1 && parseInt(inputQuantity) > 0))
+        setInputQuantity((parseInt(inputQuantity) + adjustment).toString());
+    } catch {
+      alert("Please ensure to only adjust the quantity of valid numbers.");
+    }
+  };
+
+  const handleCreateItem = () => {
     if (itemEditing) {
       itemArray.splice(
         currentItemIndex,
@@ -140,8 +180,8 @@ const home = () => {
           inputName,
           parseInt(inputQuantity),
           parseInt(inputPreferredQuantity),
-          true,
-          new Date(2025, 1, 1)
+          inputCanExpire,
+          inputDate
         )
       );
       setItemEditing(false);
@@ -152,11 +192,12 @@ const home = () => {
           inputName,
           parseInt(inputQuantity),
           parseInt(inputPreferredQuantity),
-          true,
-          new Date(2025, 1, 1)
+          inputCanExpire,
+          inputDate
         ),
       ]);
     }
+    handleSave();
   };
 
   function isNumber(num: string) {
@@ -165,7 +206,17 @@ const home = () => {
     );
   }
 
-  const handleConfirmItem = () => {
+  function expiryWarning(item: Item): boolean {
+    let currentDate = new Date();
+    let expirationDate = item.expirationDate;
+    let expirationWarningDate = new Date(
+      expirationDate.getTime() - EXPIRY_PERIOD * 24 * 60 * 60 * 1000
+    );
+
+    return expirationWarningDate.getTime() < currentDate.getTime();
+  }
+
+  const handleConfirm = () => {
     let errorMessage = "";
     // Error Handling
     // TIDY UP LATER
@@ -236,11 +287,13 @@ const home = () => {
       }
       Alert.alert("ERROR", errorMessage, [{ text: "OK" }]);
     } else {
-      createNewItem();
+      handleCreateItem();
       setOverlayVisible(false);
       setInputName("");
-      setInputPreferredQuantity("");
       setInputQuantity("");
+      setInputPreferredQuantity("");
+      setInputDate(new Date());
+      setInputCanExpire(false);
     }
   };
 
@@ -258,13 +311,21 @@ const home = () => {
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Search box */}
-          <TextInput
-            style={styles.searchBox}
-            onChangeText={setSearch}
-            value={search}
-            placeholder="Search"
-            selectionColor={Colors.link}
-          />
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchBox}
+              onChangeText={setSearch}
+              value={search}
+              placeholder="Search"
+              selectionColor={Colors.link}
+            />
+            <FontAwesome
+              //style={{ position: "absolute", alignSelf: "center", right: 0 }}
+              name="search"
+              size={22}
+              color="black"
+            />
+          </View>
           {/* Horizontal line */}
           <View
             style={{
@@ -275,6 +336,7 @@ const home = () => {
             }}
           />
 
+          {/* ITEM LIST */}
           {itemArray
             .filter((item) =>
               item.name.toLowerCase().includes(search.toLowerCase())
@@ -296,16 +358,44 @@ const home = () => {
                   setInputName(item.name);
                   setInputQuantity(item.quantity.toString());
                   setInputPreferredQuantity(item.preferredQuantity.toString());
+                  setInputCanExpire(item.canExpire);
+                  setInputDate(item.expirationDate);
                   setOverlayVisible(true);
                 }}
               >
                 <Text style={styles.itemText} numberOfLines={1}>
                   {item.name}
                 </Text>
-                <View style={styles.itemQuantityBox}>
-                  <Text style={styles.itemQuantityText}>
-                    {item.quantity} / {item.preferredQuantity}
-                  </Text>
+                <View style={{ flexDirection: "row" }}>
+                  {expiryWarning(item) && item.canExpire && (
+                    <FontAwesome
+                      style={{ textAlignVertical: "center", paddingRight: 10 }}
+                      name="hourglass-o"
+                      size={22}
+                      color="red"
+                    />
+                  )}
+                  <View style={styles.itemQuantityBox}>
+                    <Text style={styles.itemQuantityText}>
+                      <Text
+                        style={[
+                          styles.itemQuantityText,
+                          {
+                            color:
+                              item.quantity < item.preferredQuantity
+                                ? "red"
+                                : "black",
+                          },
+                        ]}
+                      >
+                        {item.quantity}
+                      </Text>
+                      <Text style={styles.itemQuantityText}>
+                        {" "}
+                        / {item.preferredQuantity}
+                      </Text>
+                    </Text>
+                  </View>
                 </View>
               </Pressable>
             ))}
@@ -329,6 +419,12 @@ const home = () => {
             >
               Add Item
             </Text>
+            <FontAwesome
+              style={{ textAlignVertical: "center" }}
+              name="plus"
+              size={22}
+              color="black"
+            />
           </Pressable>
 
           {/* TEMPORARY SIGN OUT */}
@@ -351,96 +447,145 @@ const home = () => {
 
           {/* Item Config */}
           <Overlay
-            overlayStyle={styles.overlayContainer}
             isVisible={overlayVisible}
+            overlayStyle={styles.overlayContainer}
           >
-            <TextInput
-              style={styles.longInput}
-              onChangeText={setInputName}
-              value={inputName}
-              placeholder="Name"
-              selectionColor={Colors.link}
-            />
-            <TextInput
-              style={styles.longInput}
-              maxLength={5}
-              onChangeText={setInputQuantity}
-              value={inputQuantity}
-              placeholder="Quantity"
-              selectionColor={Colors.link}
-              keyboardType="number-pad"
-            />
-            <TextInput
-              style={styles.longInput}
-              maxLength={5}
-              onChangeText={setInputPreferredQuantity}
-              value={inputPreferredQuantity}
-              placeholder="Preferred Quantity"
-              selectionColor={Colors.link}
-              keyboardType="number-pad"
-            />
-            <Pressable
-              style={styles.longInput}
-              onPress={() => setDateVisible(true)}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.innerOverlayContainer}
             >
-              <Text style={styles.longInputText}>
-                {inputDate.getDate().toString()} /{" "}
-                {(inputDate.getMonth() + 1).toString()} /{" "}
-                {inputDate.getFullYear().toString()}
-              </Text>
-            </Pressable>
-            <DatePicker
-              modal
-              mode="date"
-              title={null}
-              open={dateVisible}
-              date={inputDate}
-              onConfirm={(date) => {
-                setDateVisible(false);
-                setInputDate(date);
-              }}
-              onCancel={() => setDateVisible(false)}
-            />
-            <Pressable onPress={handleConfirmItem} style={styles.confirmButton}>
-              <Text style={styles.confirmButtonText}>Confirm</Text>
-            </Pressable>
-            <Pressable onPress={cancelConfig} style={styles.cancelButton}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </Pressable>
+              {/* NAME */}
+              <TextInput
+                style={styles.longInput}
+                onChangeText={setInputName}
+                value={inputName}
+                placeholder="Name"
+                selectionColor={Colors.link}
+              />
+              {/* QUANTITY */}
+              <View style={styles.modalContainer}>
+                <TextInput
+                  style={[styles.longInput, { width: null }]}
+                  maxLength={5}
+                  onChangeText={setInputQuantity}
+                  value={inputQuantity}
+                  placeholder="..."
+                  selectionColor={Colors.link}
+                  keyboardType="number-pad"
+                />
+                <Pressable
+                  onPress={() => handleQuantityAdjust(-1)}
+                  style={styles.cancelButton}
+                >
+                  <FontAwesome name="minus" size={22} color="black" />
+                </Pressable>
+                <Pressable
+                  onPress={() => handleQuantityAdjust(1)}
+                  style={styles.cancelButton}
+                >
+                  <FontAwesome name="plus" size={22} color="black" />
+                </Pressable>
+              </View>
+              {/* PREFERRED QUANTITY */}
+              <TextInput
+                style={styles.longInput}
+                maxLength={5}
+                onChangeText={setInputPreferredQuantity}
+                value={inputPreferredQuantity}
+                placeholder="Preferred Quantity"
+                selectionColor={Colors.link}
+                keyboardType="number-pad"
+              />
+              <View style={styles.modalContainer}>
+                {/* DATE */}
+                <Pressable
+                  style={[styles.longInput, { width: null }]}
+                  onPress={() => {
+                    if (inputCanExpire) {
+                      setDateVisible(true);
+                    } else {
+                      alert(
+                        "Please ensure to select whether an expiry date is applicable to this item before trying to change its expiry date."
+                      );
+                    }
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.inputText,
+                      { color: inputCanExpire ? "black" : "#969696" },
+                    ]}
+                  >
+                    {inputCanExpire == false
+                      ? "-- / -- / ----"
+                      : dateVisible == true
+                      ? "Loading..."
+                      : inputDate
+                          .getDate()
+                          .toString()
+                          .concat(
+                            " / ",
+                            (inputDate.getMonth() + 1).toString(),
+                            " / ",
+                            inputDate.getFullYear().toString()
+                          )}
+                  </Text>
+                </Pressable>
+                {/* N/A */}
+                <Pressable
+                  onPress={() => setInputCanExpire(!inputCanExpire)}
+                  style={[
+                    styles.cancelButton,
+                    {
+                      backgroundColor: inputCanExpire
+                        ? "white"
+                        : Colors.highlightedMinor,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.cancelButtonText,
+                      {
+                        fontFamily: inputCanExpire
+                          ? "Inter-Regular"
+                          : "Inter-Bold",
+                      },
+                    ]}
+                  >
+                    N/A
+                  </Text>
+                </Pressable>
+              </View>
+              <DatePicker
+                modal
+                mode="date"
+                title={null}
+                open={dateVisible}
+                date={inputDate}
+                onConfirm={(date) => {
+                  setDateVisible(false);
+                  setInputDate(date);
+                }}
+                onCancel={() => setDateVisible(false)}
+              />
+              <View style={[styles.modalContainer, { marginVertical: 10 }]}>
+                {/* CONFIRM */}
+                <Pressable onPress={handleConfirm} style={styles.confirmButton}>
+                  <Text style={styles.confirmButtonText}>Confirm</Text>
+                </Pressable>
+                {/* CANCEL */}
+                <Pressable onPress={handleCancel} style={styles.cancelButton}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+              </View>
+              {itemEditing && (
+                <Pressable onPress={handleDelete} style={styles.deleteButton}>
+                  <Text style={styles.deleteButtonText}>Delete Item</Text>
+                </Pressable>
+              )}
+            </KeyboardAvoidingView>
           </Overlay>
-
-          {/*
-        <View style={styles.itemBox}>
-          <Text style={styles.itemText} numberOfLines={1}>
-            Paracetamol
-          </Text>
-          <View style={styles.itemQuantityBox}>
-            <Text style={styles.itemQuantityText}>10 / 8</Text>
-          </View>
-        </View>
-        <View style={styles.itemBox}>
-          <Text style={styles.itemText} numberOfLines={1}>
-            Ibuprofen
-          </Text>
-          <View style={styles.itemQuantityBox}>
-            <Text style={styles.itemQuantityText}>
-              <Text style={[styles.itemQuantityText, { color: "red" }]}>5</Text>
-              <Text style={styles.itemQuantityText}> / 4</Text>
-            </Text>
-          </View>
-        </View>
-        <View style={styles.itemBox}>
-          <Text style={styles.itemText} numberOfLines={1}>
-            N95
-          </Text>
-          <View style={styles.itemQuantityBox}>
-            <Text style={styles.itemQuantityText}>
-              <Text style={[styles.itemQuantityText, { color: "red" }]}>1</Text>
-              <Text style={styles.itemQuantityText}> / 10</Text>
-            </Text>
-          </View>
-        </View>
-        */}
         </ScrollView>
       </SafeAreaView>
     </>
@@ -461,9 +606,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 20,
   },
+  searchContainer: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 18.5,
+    borderRadius: 0,
+    width: "85%",
+    marginTop: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   overlayContainer: {
     width: "85%",
     borderRadius: 13,
+  },
+  innerOverlayContainer: {
     justifyContent: "flex-start",
     alignItems: "center",
   },
@@ -474,15 +632,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  modalContainer: {
+    width: "90%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   searchBox: {
     fontFamily: "Inter-Bold",
     fontSize: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 18.5,
-    borderRadius: 0,
     width: "85%",
-    marginTop: 20,
   },
   itemBox: {
     width: "85%",
@@ -524,16 +683,14 @@ const styles = StyleSheet.create({
     width: "90%",
     marginVertical: 10,
   },
-  longInputText: {
+  inputText: {
     fontFamily: "Inter-Regular",
     fontSize: 20,
-    color: "gray",
+    color: "#969696",
   },
   confirmButton: {
     padding: 18.5,
     borderRadius: 13,
-    width: "50%",
-    margin: 10,
     alignItems: "center",
     backgroundColor: Colors.blue,
   },
@@ -545,8 +702,6 @@ const styles = StyleSheet.create({
   cancelButton: {
     padding: 18.5,
     borderRadius: 13,
-    width: "50%",
-    margin: 10,
     alignItems: "center",
     borderWidth: 1,
     borderColor: Colors.border,
@@ -555,5 +710,20 @@ const styles = StyleSheet.create({
     fontFamily: "Inter-Regular",
     fontSize: 20,
     color: "black",
+  },
+  deleteButton: {
+    width: "90%",
+    padding: 18.5,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: "red",
+    alignItems: "center",
+    backgroundColor: "white",
+    marginVertical: 10,
+  },
+  deleteButtonText: {
+    fontFamily: "Inter-Bold",
+    fontSize: 20,
+    color: "red",
   },
 });

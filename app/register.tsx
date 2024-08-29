@@ -31,7 +31,15 @@ const register = () => {
         const user = userCredential.user;
         setLoading(false);
         setDoc(doc(db, "users", user.uid), {
-          Items: [],
+          Items: [
+            {
+              name: "Example",
+              quantity: 5,
+              preferredQuantity: 3,
+              canExpire: true,
+              date: new Date(),
+            },
+          ],
         })
           .then(() => alert("Account created successfully!"))
           .catch((err: any) => {
