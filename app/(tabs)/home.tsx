@@ -141,6 +141,10 @@ const home = () => {
     });
   };
 
+  useEffect(() => {
+    handleSave();
+  }, [itemArray]);
+
   const handleSignOut = async () => {
     await auth.signOut();
     router.replace("/");
@@ -159,7 +163,6 @@ const home = () => {
   const handleDelete = () => {
     itemArray.splice(currentItemIndex, 1);
     handleCancel();
-    handleSave();
   };
 
   const handleQuantityAdjust = (adjustment: number) => {
@@ -197,7 +200,6 @@ const home = () => {
         ),
       ]);
     }
-    handleSave();
   };
 
   function isNumber(num: string) {
