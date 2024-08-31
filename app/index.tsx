@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
-import { auth, db } from "../firebase/firebase";
+import { auth } from "../firebase/firebase";
 
 import { Colors } from "@/constants/Colors";
 import { signInWithEmailAndPassword } from "firebase/auth";
