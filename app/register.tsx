@@ -12,9 +12,10 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
-import { auth, db } from "../firebase/firebase";
+import { auth, db } from "@/firebase/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
+import { GLOBAL } from "@/constants/Global";
 import { Colors } from "@/constants/Colors";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
@@ -31,12 +32,14 @@ const register = () => {
         const user = userCredential.user;
         setLoading(false);
         setDoc(doc(db, "users", user.uid), {
+          Email: user.email,
+          ExpiryReminder: 14,
           Items: [
             {
               name: "Example",
               quantity: 5,
               preferredQuantity: 3,
-              canExpire: true,
+              canExpire: false,
               date: new Date(),
             },
           ],
@@ -58,9 +61,9 @@ const register = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* KEEP logo */}
+      {/* Logo */}
       <Image
-        source={require("@/assets/images/castle-tower.png")}
+        source={require("@/assets/images/stjohn-adaptive.png")}
         style={{ width: 232, height: 232 }}
       />
       {/*<Text style={styles.title}>KEEP</Text>*/}

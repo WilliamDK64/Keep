@@ -41,9 +41,9 @@ export default function Index() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView style={styles.innerContainer}>
-        {/* KEEP logo */}
+        {/* Logo */}
         <Image
-          source={require("@/assets/images/castle-tower.png")}
+          source={require("@/assets/images/stjohn-adaptive.png")}
           style={{ width: 232, height: 232 }}
         />
         {/*<Text style={styles.title}>KEEP</Text>*/}

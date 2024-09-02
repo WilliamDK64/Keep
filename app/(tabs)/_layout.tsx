@@ -16,16 +16,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="order"
-        options={{
-          title: "Order",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="warning" color={color} />
-          ),
-          headerShown: false,
-        }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",

@@ -17,8 +17,8 @@ import {
 import { useState, useEffect } from "react";
 import { Overlay } from "@rneui/themed";
 import DatePicker from "react-native-date-picker";
-import { router } from "expo-router";
-import { auth, db } from "../../firebase/firebase";
+import { router, useGlobalSearchParams } from "expo-router";
+import { auth, db } from "@/firebase/firebase";
 import {
   doc,
   setDoc,
@@ -32,6 +32,7 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
+import { GLOBAL } from "@/constants/Global";
 import { GeneralStyles } from "@/constants/GeneralStyles";
 import { Colors } from "@/constants/Colors";
 
@@ -53,7 +54,7 @@ const home = () => {
   const [inputCanExpire, setInputCanExpire] = useState(false);
 
   // This should be changed to be editable in settings
-  const EXPIRY_PERIOD: number = 14;
+  const EXPIRY_PERIOD: number = GLOBAL.expiryReminder;
 
   class Item {
     name: string;
@@ -83,7 +84,6 @@ const home = () => {
 
   const fetchData = async () => {
     const docSnap = await getDoc(docRef);
-
     if (docSnap.exists()) {
       //console.log("Document data:", docSnap.data());
       setUserInfo(docSnap.data());
@@ -102,9 +102,10 @@ const home = () => {
         });
         setItemArray(importItems);
       }
+      GLOBAL.email = docSnap.data()?.Email;
+      GLOBAL.expiryReminder = docSnap.data()?.ExpiryReminder;
     } else {
-      // docSnap.data() will be undefined in this case
-      //console.log("No such document!");
+      alert("Error. Data could not be found.");
     }
   };
 
@@ -137,6 +138,8 @@ const home = () => {
     });
 
     await setDoc(docRef, {
+      Email: GLOBAL.email,
+      ExpiryReminder: GLOBAL.expiryReminder,
       Items: mapItems,
     });
   };
@@ -144,11 +147,6 @@ const home = () => {
   useEffect(() => {
     handleSave();
   }, [itemArray]);
-
-  const handleSignOut = async () => {
-    await auth.signOut();
-    router.replace("/");
-  };
 
   const handleCancel = () => {
     setInputName("");
@@ -162,6 +160,7 @@ const home = () => {
 
   const handleDelete = () => {
     itemArray.splice(currentItemIndex, 1);
+    handleSave();
     handleCancel();
   };
 
@@ -187,6 +186,7 @@ const home = () => {
           inputDate
         )
       );
+      handleSave();
       setItemEditing(false);
     } else {
       setItemArray((itemArray) => [
@@ -427,24 +427,6 @@ const home = () => {
               size={22}
               color="black"
             />
-          </Pressable>
-
-          {/* TEMPORARY SIGN OUT */}
-          <Pressable
-            style={({ pressed }) => [
-              {
-                backgroundColor: pressed ? Colors.highlightedMinor : "white",
-              },
-              styles.itemBox,
-            ]}
-            onPress={handleSignOut}
-          >
-            <Text
-              style={[styles.itemText, { fontFamily: "Inter-Bold" }]}
-              numberOfLines={1}
-            >
-              Sign Out
-            </Text>
           </Pressable>
 
           {/* Item Config */}
