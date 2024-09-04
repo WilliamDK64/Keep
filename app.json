@@ -4,7 +4,7 @@
     "slug": "Keep",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/stjohn-icon.png",
+    "icon": "./assets/images/stjohn-blackicon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/stjohn-icon.png",
+        "foregroundImage": "./assets/images/stjohn-blackicon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.olivebranch.Keep"

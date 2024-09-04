@@ -310,7 +310,7 @@ const home = () => {
   };
 
   useTabEffect("/home", () => {
-    console.log("Index rendered");
+    console.log("Home rendered...");
   });
 
   return (

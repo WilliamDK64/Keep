@@ -82,13 +82,19 @@ const settings = () => {
             {"\n"}
           </Text>
         </Text>
-        <Button title="SIGN OUT" onPress={handleSignOut} />
+        <Button color={Colors.blue} title="SIGN OUT" onPress={handleSignOut} />
         {/* Horizontal line */}
         <View style={styles.line} />
         <Text style={styles.header}>Filter Items</Text>
         <View style={styles.filter}>
           <Text>Attention required</Text>
-          <Switch value={totalFilter} onValueChange={toggleTotalFilter} />
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={totalFilter ? "#3D7FFF" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            value={totalFilter}
+            onValueChange={toggleTotalFilter}
+          />
         </View>
         <View style={styles.filter}>
           <Text>
@@ -96,7 +102,13 @@ const settings = () => {
             {"\u2022"}
             {"  "}Low stock
           </Text>
-          <Switch value={stockFilter} onValueChange={toggleStockFilter} />
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={stockFilter ? "#3D7FFF" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            value={stockFilter}
+            onValueChange={toggleStockFilter}
+          />
         </View>
         <View style={styles.filter}>
           <Text>
@@ -104,7 +116,13 @@ const settings = () => {
             {"\u2022"}
             {"  "}Near expiry
           </Text>
-          <Switch value={expiryFilter} onValueChange={toggleExpiryFilter} />
+          <Switch
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={expiryFilter ? "#3D7FFF" : "#f4f3f4"}
+            ios_backgroundColor="#3e3e3e"
+            value={expiryFilter}
+            onValueChange={toggleExpiryFilter}
+          />
         </View>
         {/* Horizontal line */}
         <View style={styles.line} />
@@ -120,6 +138,7 @@ const settings = () => {
         />
         <Button
           title="Save"
+          color={Colors.blue}
           onPress={() => {
             try {
               GLOBAL.expiryReminder = parseInt(inputExpiryReminder);
