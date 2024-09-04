@@ -1,5 +1,9 @@
 export var GLOBAL = {
     email: "",
-    //order: false,
+    uid: "",
     expiryReminder: 14,
+    items: [],
+    lowStockFilter: false,
+    nearExpiryFilter: false,
+    filterChanged: false,
 };

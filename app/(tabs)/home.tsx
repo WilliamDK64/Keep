@@ -14,7 +14,7 @@ import {
   Appearance,
   KeyboardAvoidingView,
 } from "react-native";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useReducer, useCallback } from "react";
 import { Overlay } from "@rneui/themed";
 import DatePicker from "react-native-date-picker";
 import { router, useGlobalSearchParams } from "expo-router";
@@ -31,6 +31,8 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useFocusEffect } from "@react-navigation/native";
+import { useTabEffect } from "@/hooks/useTabEffect";
 
 import { GLOBAL } from "@/constants/Global";
 import { GeneralStyles } from "@/constants/GeneralStyles";
@@ -38,8 +40,8 @@ import { Colors } from "@/constants/Colors";
 
 const home = () => {
   const [userInfo, setUserInfo] = useState<any | undefined>(null);
+  // User ID is initially set to "Null"
   const [userId, setUserId] = useState("Null");
-  const docRef = doc(db, "users", userId);
 
   const [search, setSearch] = useState("");
   const [overlayVisible, setOverlayVisible] = useState(false);
@@ -53,9 +55,7 @@ const home = () => {
   const [inputDate, setInputDate] = useState(new Date());
   const [inputCanExpire, setInputCanExpire] = useState(false);
 
-  // This should be changed to be editable in settings
-  const EXPIRY_PERIOD: number = GLOBAL.expiryReminder;
-
+  // Item initialisation
   class Item {
     name: string;
     quantity: number;
@@ -82,11 +82,34 @@ const home = () => {
     new Item("Example", 1, 5, true, new Date(2025, 1, 1)),
   ]);
 
+  // -- FIREBASE --
+
+  // When the user is fully logged in, their UID is saved.
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      setUserId(user.uid);
+      GLOBAL.uid = user.uid;
+    } else {
+      // User is signed out
+    }
+  });
+
+  // useEffect senses the change in UID and fetches the data.
+  useEffect(() => {
+    // Prevent data from being fetched while UID is still Null.
+    if (userId != "Null") {
+      fetchData();
+    }
+  }, [userId]);
+
+  // fetchData finds the data corresponding to the UID and imports it in the correct format.
   const fetchData = async () => {
+    const docRef = doc(db, "users", userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       //console.log("Document data:", docSnap.data());
       setUserInfo(docSnap.data());
+      GLOBAL.items = docSnap.data().Items;
       let importItems: Item[] = [];
       if (docSnap.data().Items != null) {
         docSnap.data().Items.forEach((item: any) => {
@@ -109,23 +132,9 @@ const home = () => {
     }
   };
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      // User is signed in, see docs for a list of available properties
-      // https://firebase.google.com/docs/reference/js/auth.user
-      //console.log("Logged in as ID: ", user.uid);
-      setUserId(user.uid);
-    } else {
-      // User is signed out
-      //console.log("User is signed out");
-    }
-  });
-
-  useEffect(() => {
-    fetchData();
-  }, [userId]);
-
+  // handleSave is called whenever something is changed (add, edit, delete).
   const handleSave = async () => {
+    const docRef = doc(db, "users", userId);
     let mapItems: any = [];
     itemArray.forEach((item) => {
       mapItems.push({
@@ -137,6 +146,8 @@ const home = () => {
       });
     });
 
+    GLOBAL.items = mapItems;
+
     await setDoc(docRef, {
       Email: GLOBAL.email,
       ExpiryReminder: GLOBAL.expiryReminder,
@@ -144,13 +155,9 @@ const home = () => {
     });
   };
 
-  useEffect(() => {
-    handleSave();
-  }, [itemArray]);
-
   const handleCancel = () => {
     setInputName("");
-    setInputQuantity("");
+    setInputQuantity("0");
     setInputPreferredQuantity("");
     setInputDate(new Date());
     setInputCanExpire(false);
@@ -189,16 +196,16 @@ const home = () => {
       handleSave();
       setItemEditing(false);
     } else {
-      setItemArray((itemArray) => [
-        ...itemArray,
+      itemArray.push(
         new Item(
           inputName,
           parseInt(inputQuantity),
           parseInt(inputPreferredQuantity),
           inputCanExpire,
           inputDate
-        ),
-      ]);
+        )
+      );
+      handleSave();
     }
   };
 
@@ -209,10 +216,13 @@ const home = () => {
   }
 
   function expiryWarning(item: Item): boolean {
+    if (item.canExpire == false) {
+      return false;
+    }
     let currentDate = new Date();
     let expirationDate = item.expirationDate;
     let expirationWarningDate = new Date(
-      expirationDate.getTime() - EXPIRY_PERIOD * 24 * 60 * 60 * 1000
+      expirationDate.getTime() - GLOBAL.expiryReminder * 24 * 60 * 60 * 1000
     );
 
     return expirationWarningDate.getTime() < currentDate.getTime();
@@ -287,17 +297,21 @@ const home = () => {
           );
         }
       }
-      Alert.alert("ERROR", errorMessage, [{ text: "OK" }]);
+      Alert.alert("Error", errorMessage, [{ text: "OK" }]);
     } else {
       handleCreateItem();
       setOverlayVisible(false);
       setInputName("");
-      setInputQuantity("");
+      setInputQuantity("0");
       setInputPreferredQuantity("");
       setInputDate(new Date());
       setInputCanExpire(false);
     }
   };
+
+  useTabEffect("/home", () => {
+    console.log("Index rendered");
+  });
 
   return (
     <>
@@ -340,8 +354,19 @@ const home = () => {
 
           {/* ITEM LIST */}
           {itemArray
-            .filter((item) =>
-              item.name.toLowerCase().includes(search.toLowerCase())
+            .filter(
+              (item) =>
+                item.name.toLowerCase().includes(search.toLowerCase()) &&
+                (GLOBAL.lowStockFilter == GLOBAL.nearExpiryFilter &&
+                GLOBAL.nearExpiryFilter
+                  ? (GLOBAL.lowStockFilter
+                      ? item.quantity < item.preferredQuantity
+                      : true) ||
+                    (GLOBAL.nearExpiryFilter ? expiryWarning(item) : true)
+                  : (GLOBAL.lowStockFilter
+                      ? item.quantity < item.preferredQuantity
+                      : true) &&
+                    (GLOBAL.nearExpiryFilter ? expiryWarning(item) : true))
             )
             .map((item) => (
               <Pressable
@@ -453,7 +478,7 @@ const home = () => {
                   maxLength={5}
                   onChangeText={setInputQuantity}
                   value={inputQuantity}
-                  placeholder="..."
+                  placeholder="0"
                   selectionColor={Colors.link}
                   keyboardType="number-pad"
                 />

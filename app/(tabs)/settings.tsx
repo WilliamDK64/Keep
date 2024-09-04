@@ -6,26 +6,152 @@ import {
   StatusBar,
   SafeAreaView,
   Button,
+  Switch,
+  TextInput,
+  Alert,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
-import { auth, db } from "../../firebase/firebase";
-import React from "react";
+import { auth, db } from "@/firebase/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import React, { useState } from "react";
 
 import { GLOBAL } from "@/constants/Global";
+import { Colors } from "@/constants/Colors";
 
 const settings = () => {
+  const docRef = doc(db, "users", GLOBAL.uid);
+  const [inputExpiryReminder, setInputExpiryReminder] = useState(
+    GLOBAL.expiryReminder.toString()
+  );
+
+  const [expiryFilter, setExpiryFilter] = useState(GLOBAL.nearExpiryFilter);
+  const toggleExpiryFilter = (value: boolean) => {
+    setExpiryFilter(value);
+    GLOBAL.nearExpiryFilter = value;
+    setTotalFilter(value == stockFilter && value);
+    GLOBAL.filterChanged = true;
+  };
+  const [stockFilter, setStockFilter] = useState(GLOBAL.lowStockFilter);
+  const toggleStockFilter = (value: boolean) => {
+    setStockFilter(value);
+    GLOBAL.lowStockFilter = value;
+    setTotalFilter(value == expiryFilter && value);
+    GLOBAL.filterChanged = true;
+  };
+  const [totalFilter, setTotalFilter] = useState(
+    GLOBAL.nearExpiryFilter == GLOBAL.lowStockFilter && GLOBAL.nearExpiryFilter
+      ? true
+      : false
+  );
+  const toggleTotalFilter = (value: boolean) => {
+    setTotalFilter(value);
+    setExpiryFilter(value);
+    setStockFilter(value);
+    GLOBAL.nearExpiryFilter = value;
+    GLOBAL.lowStockFilter = value;
+    GLOBAL.filterChanged = true;
+  };
+
   const handleSignOut = async () => {
     await auth.signOut();
     router.replace("/");
   };
 
+  const handleSave = async () => {
+    await setDoc(docRef, {
+      Email: GLOBAL.email,
+      ExpiryReminder: GLOBAL.expiryReminder,
+      Items: GLOBAL.items,
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.innerContainer}>
+      <ScrollView style={styles.innerContainer}>
+        {/* Title */}
         <Text style={styles.title}>Settings</Text>
-        <Text>Logged in as: {GLOBAL.email}</Text>
+        {/* Horizontal line */}
+        <View style={styles.line} />
+        {/* Sign out */}
+        <Text style={styles.header}>Account</Text>
+        <Text>
+          <Text>Logged in as: </Text>
+          <Text style={{ fontFamily: "Inter-Bold" }}>
+            {GLOBAL.email}
+            {"\n"}
+          </Text>
+        </Text>
         <Button title="SIGN OUT" onPress={handleSignOut} />
-      </View>
+        {/* Horizontal line */}
+        <View style={styles.line} />
+        <Text style={styles.header}>Filter Items</Text>
+        <View style={styles.filter}>
+          <Text>Attention required</Text>
+          <Switch value={totalFilter} onValueChange={toggleTotalFilter} />
+        </View>
+        <View style={styles.filter}>
+          <Text>
+            {"\t"}
+            {"\u2022"}
+            {"  "}Low stock
+          </Text>
+          <Switch value={stockFilter} onValueChange={toggleStockFilter} />
+        </View>
+        <View style={styles.filter}>
+          <Text>
+            {"\t"}
+            {"\u2022"}
+            {"  "}Near expiry
+          </Text>
+          <Switch value={expiryFilter} onValueChange={toggleExpiryFilter} />
+        </View>
+        {/* Horizontal line */}
+        <View style={styles.line} />
+        <Text style={styles.header}>Expiry Date Reminder Period</Text>
+        <TextInput
+          style={styles.input}
+          maxLength={3}
+          onChangeText={setInputExpiryReminder}
+          value={inputExpiryReminder}
+          placeholder={GLOBAL.expiryReminder.toString()}
+          selectionColor={Colors.link}
+          keyboardType="number-pad"
+        />
+        <Button
+          title="Save"
+          onPress={() => {
+            try {
+              GLOBAL.expiryReminder = parseInt(inputExpiryReminder);
+              Alert.alert(
+                "Saved",
+                "Successfully changed the expiry reminder to " +
+                  GLOBAL.expiryReminder.toString() +
+                  " days."
+              );
+              handleSave();
+            } catch {
+              Alert.alert(
+                "Error",
+                "Please ensure that only proper integer numbers are put in the field."
+              );
+            }
+          }}
+        />
+        {/* Horizontal line */}
+        <View style={styles.line} />
+        <Text style={styles.header}>Attributions</Text>
+        <Text>
+          This application was made by William Dimery-Knight in collaboration
+          with Hato Hone St John. St John logos and iconography are used with
+          permission.{"\n"}
+          For any inquiries, please email{" "}
+          <Text style={{ fontFamily: "Inter-Bold" }}>
+            williamdk.101@gmail.com
+          </Text>
+          .{"\n"}
+        </Text>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -47,6 +173,33 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "Inter-Bold",
     fontSize: 30,
+    marginTop: 20,
   },
-  header: {},
+  header: {
+    fontFamily: "Inter-Bold",
+    fontSize: 20,
+  },
+  line: {
+    borderBottomColor: "black",
+    borderBottomWidth: 1,
+    width: "100%",
+    marginVertical: 20,
+  },
+  button: {
+    marginVertical: 10,
+    fontFamily: "Inter-Regular",
+  },
+  filter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  input: {
+    fontFamily: "Inter-Regular",
+    fontSize: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 18.5,
+    borderRadius: 0,
+    marginVertical: 10,
+  },
 });
