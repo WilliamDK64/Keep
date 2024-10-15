@@ -18,6 +18,7 @@ import { useState, useEffect, useReducer, useCallback } from "react";
 import { Overlay } from "@rneui/themed";
 import DatePicker from "react-native-date-picker";
 import { router, useGlobalSearchParams } from "expo-router";
+import { v4 as uuidv4 } from "uuid";
 import { auth, db } from "@/firebase/firebase";
 import {
   doc,
@@ -370,7 +371,7 @@ const home = () => {
             )
             .map((item) => (
               <Pressable
-                key={itemArray.indexOf(item)}
+                key={uuidv4()}
                 style={({ pressed }) => [
                   {
                     backgroundColor: pressed
